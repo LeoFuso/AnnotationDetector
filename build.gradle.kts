@@ -61,11 +61,22 @@ tasks {
         archiveBaseName.set("shadow")
         archiveClassifier.set("")
         archiveVersion.set("")
+    }
+
+    val propertyTask = register("jmhRunProperties") {
+        group = "jmh"
+        description = "Build property file for a benchmark run."
+
+        dependsOn(shadowJar)
+        outputs.upToDateWhen { false }
 
         val buildDir = File(project.buildDir.absolutePath)
         val properties = File(projectDir.absolutePath, "jmh.properties")
 
         doLast {
+            if (properties.exists()) {
+                properties.delete()
+            }
             properties.createNewFile()
             val jar = File(buildDir, "/libs/shadow.jar".asPlatformAgnosticPath())
             properties append "jar.path=${jar.path}"
@@ -73,8 +84,8 @@ tasks {
     }
 
     named<JMHTask>("jmh") {
+        dependsOn(propertyTask)
         outputs.upToDateWhen { false }
-        dependsOn(shadowJar)
         val properties = File(projectDir.absolutePath, "jmh.properties")
         doLast {
             if (properties.exists()) {
@@ -93,34 +104,17 @@ application {
 }
 
 jmh {
-    iterations.set(10)
-    benchmarkMode.set(
-        listOf(
-            "avgt",
-            "ss",
-            "sample"
-        )
-    )
-    batchSize.set(1)
-    fork.set(1)
+    synchronizeIterations.set(false)
     failOnError.set(true)
     forceGC.set(false)
     profilers.set(
-        listOf(
-            "perfnorm"
-        )
+        listOf()
     )
     humanOutputFile.set(project.file("${project.buildDir}/reports/jmh/human.txt"))
     resultsFile.set(project.file("${project.buildDir}/reports/jmh/results.txt"))
-    timeOnIteration.set("1s")
-    threads.set(1)
-    timeUnit.set("ms")
-    verbosity.set("EXTRA")
-    warmup.set("1s")
-    warmupForks.set(2)
-    warmupIterations.set(1)
+    verbosity.set("NORMAL")
     warmupMode.set("INDI")
-    resultFormat.set("TEXT")
+    resultFormat.set("CSV")
 }
 
 fun String.asPlatformAgnosticPath() = this.replace("/", File.separator)
